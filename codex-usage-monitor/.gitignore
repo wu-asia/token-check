@@ -2,3 +2,7 @@ __pycache__/
 *.py[cod]
 data/*.db
 config/settings.json
+build/
+dist/
+*.spec
+build-*.log

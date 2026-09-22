@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.json"
+APP_DATA_ROOT = (
+    Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "CodexUsageMonitor"
+    if getattr(sys, "frozen", False)
+    else PROJECT_ROOT
+)
+DEFAULT_SETTINGS_PATH = APP_DATA_ROOT / "config" / "settings.json"
 
 
 @dataclass(frozen=True)

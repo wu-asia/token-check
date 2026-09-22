@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+
 from PySide6.QtCore import QObject, QTimer
 
 from monitor.history_database import HistoryDatabase
@@ -26,6 +28,7 @@ class HistoryRecorder(QObject):
         self._last_recorded_snapshot: UsageSnapshot | None = None
         self._record_on_next_snapshot = self._settings.enabled
         self.reset_events: list[WindowResetEvent] = []
+        self.last_error: str | None = None
         self._apply_timer_state()
 
     @property
@@ -72,9 +75,15 @@ class HistoryRecorder(QObject):
     def shutdown(self) -> None:
         self._timer.stop()
 
-    def _record(self, snapshot: UsageSnapshot) -> None:
-        self._database.record_snapshot(snapshot)
+    def _record(self, snapshot: UsageSnapshot) -> bool:
+        try:
+            self._database.record_snapshot(snapshot)
+        except (OSError, sqlite3.Error) as error:
+            self.last_error = str(error)
+            return False
+        self.last_error = None
         self._last_recorded_snapshot = snapshot
+        return True
 
     def _apply_timer_state(self) -> None:
         self._timer.setInterval(self._settings.interval_minutes * 60 * 1000)

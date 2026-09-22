@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from collections.abc import Iterator
 
-from monitor.settings import PROJECT_ROOT
+from monitor.settings import APP_DATA_ROOT
 from monitor.usage_model import UsageSnapshot
 
 
-DEFAULT_DATABASE_PATH = PROJECT_ROOT / "data" / "usage_history.db"
+DEFAULT_DATABASE_PATH = APP_DATA_ROOT / "data" / "usage_history.db"
 
 
 class HistoryDatabase:
@@ -80,7 +80,7 @@ class HistoryDatabase:
     def _connection(self) -> Iterator[sqlite3.Connection]:
         """Commit on success and always release the Windows file handle."""
 
-        connection = sqlite3.connect(self.path)
+        connection = sqlite3.connect(self.path, timeout=0.2)
         try:
             yield connection
             connection.commit()

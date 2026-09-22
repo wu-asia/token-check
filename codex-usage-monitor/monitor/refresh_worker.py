@@ -105,3 +105,4 @@ class RefreshController(QObject):
         self.pause()
         if self._thread is not None and self._thread.isRunning():
             self._thread.quit()
+            self._thread.wait(1_000)
