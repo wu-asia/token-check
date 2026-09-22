@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素风机甲对战</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @font-face {
+      font-family: 'Pixel';
+      src: local('Courier New'), local('monospace');
+    }
+
+    body {
+      background: #0a0a12;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+
+    .game-container {
+      position: relative;
+      border: 4px solid #3d3d5c;
+      border-radius: 8px;
+      box-shadow: 
+        0 0 0 2px #1a1a2e,
+        0 0 40px rgba(100, 100, 200, 0.2),
+        inset 0 0 60px rgba(0, 0, 0, 0.5);
+    }
+
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .player-hud {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 200px;
+    }
+
+    .player-hud.right {
+      align-items: flex-end;
+    }
+
+    .player-label {
+      font-size: 14px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .player-label.red { color: #ff4757; text-shadow: 0 0 10px #ff4757; }
+    .player-label.blue { color: #3742fa; text-shadow: 0 0 10px #3742fa; }
+
+    .bar-container {
+      width: 100%;
+      height: 16px;
+      background: #1a1a2e;
+      border: 2px solid #3d3d5c;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar {
+      height: 100%;
+      transition: width 0.2s ease;
+    }
+
+    .hp-bar {
+      background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+      box-shadow: 0 0 10px #22c55e;
+    }
+
+    .hp-bar.medium {
+      background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+      box-shadow: 0 0 10px #f59e0b;
+    }
+
+    .hp-bar.low {
+      background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    .energy-bar {
+      background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+      box-shadow: 0 0 8px #3b82f6;
+    }
+
+    .bar-label {
+      font-size: 10px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 10, 18, 0.9);
+      z-index: 10;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .title {
+      font-size: 48px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 
+        0 0 20px #ff4757,
+        0 0 40px #3742fa,
+        4px 4px 0 #1a1a2e;
+      margin-bottom: 20px;
+      letter-spacing: 4px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: #888;
+      margin-bottom: 40px;
+      letter-spacing: 2px;
+    }
+
+    .prompt {
+      font-size: 16px;
+      color: #4ade80;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.3; }
+    }
+
+    .countdown {
+      font-size: 120px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 30px #fff;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .winner-text {
+      font-size: 42px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px currentColor;
+    }
+
+    .winner-text.red { color: #ff4757; }
+    .winner-text.blue { color: #3742fa; }
+
+    .controls {
+      position: absolute;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+
+    .control-group {
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+    }
+
+    .control-group span {
+      color: #888;
+    }
+
+    .scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .crt-effect {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        rgba(0, 0, 0, 0.2) 90%,
+        rgba(0, 0, 0, 0.4) 100%
+      );
+      pointer-events: none;
+      z-index: 6;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <canvas id="game" width="900" height="550"></canvas>
+    
+    <div class="hud">
+      <div class="player-hud">
+        <div class="player-label red">RED MECH</div>
+        <div class="bar-container">
+          <div class="bar hp-bar" id="red-hp" style="width: 100%"></div>
+        </div>
+        <div class="bar-container" style="height: 10px">
+          <div class="bar energy-bar" id="red-energy" style="width: 100%"></div>
+        </div>
+      </div>
+      <div class="player-hud right">
+        <div class="player-label blue">BLUE MECH</div>
+        <div class="bar-container">
+          <div class="bar hp-bar" id="blue-hp" style="width: 100%"></div>
+        </div>
+        <div class="bar-container" style="height: 10px">
+          <div class="bar energy-bar" id="blue-energy" style="width: 100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="start-screen">
+      <div class="title">MECHA BATTLE</div>
+      <div class="subtitle">PIXEL EDITION</div>
+      <div class="prompt">PRESS SPACE TO START</div>
+    </div>
+
+    <div class="overlay hidden" id="countdown-screen">
+      <div class="countdown" id="countdown">3</div>
+    </div>
+
+    <div class="overlay hidden" id="end-screen">
+      <div class="winner-text" id="winner-text">RED WINS!</div>
+      <div class="prompt">PRESS SPACE TO RESTART</div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <span>P1:</span> A/D Move | W Jump | J Attack | K Defend | L Skill
+      </div>
+      <div class="control-group">
+        <span>P2:</span> Arrows Move | Up Jump | 1 Attack | 2 Defend | 3 Skill
+      </div>
+    </div>
+
+    <div class="scanlines"></div>
+    <div class="crt-effect"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const CANVAS_WIDTH = 900;
+    const CANVAS_HEIGHT = 550;
+    const GROUND_Y = 450;
+    const GRAVITY = 0.6;
+    const MOVE_SPEED = 4;
+    const JUMP_FORCE = -14;
+    const MAX_HP = 100;
+    const MAX_ENERGY = 50;
+    const ENERGY_REGEN = 0.15;
+
+    const ATTACK_DAMAGE = 10;
+    const SKILL_DAMAGE = 25;
+    const SKILL_ENERGY_COST = 20;
+    const ATTACK_RANGE = 70;
+    const SKILL_RANGE = 250;
+
+    const gameState = {
+      phase: 'start',
+      winner: null
+    };
+
+    const keys = {};
+
+    const mechas = {
+      RED: {
+        x: 150,
+        y: GROUND_Y,
+        width: 50,
+        height: 80,
+        hp: MAX_HP,
+        energy: MAX_ENERGY,
+        velocityX: 0,
+        velocityY: 0,
+        isJumping: false,
+        isAttacking: false,
+        isDefending: false,
+        isUsingSkill: false,
+        facing: 'right',
+        animation: 'idle',
+        frame: 0,
+        frameTimer: 0,
+        attackCooldown: 0,
+        skillCooldown: 0,
+        hitTimer: 0,
+        color: '#ff4757',
+        colorDark: '#c0392b',
+        colorLight: '#ff6b7a'
+      },
+      BLUE: {
+        x: 700,
+        y: GROUND_Y,
+        width: 50,
+        height: 80,
+        hp: MAX_HP,
+        energy: MAX_ENERGY,
+        velocityX: 0,
+        velocityY: 0,
+        isJumping: false,
+        isAttacking: false,
+        isDefending: false,
+        isUsingSkill: false,
+        facing: 'left',
+        animation: 'idle',
+        frame: 0,
+        frameTimer: 0,
+        attackCooldown: 0,
+        skillCooldown: 0,
+        hitTimer: 0,
+        color: '#3742fa',
+        colorDark: '#1e3799',
+        colorLight: '#5f6cff'
+      }
+    };
+
+    const effects = [];
+
+    function resetGame() {
+      mechas.RED.x = 150;
+      mechas.RED.y = GROUND_Y;
+      mechas.RED.hp = MAX_HP;
+      mechas.RED.energy = MAX_ENERGY;
+      mechas.RED.velocityX = 0;
+      mechas.RED.velocityY = 0;
+      mechas.RED.isJumping = false;
+      mechas.RED.isAttacking = false;
+      mechas.RED.isDefending = false;
+      mechas.RED.isUsingSkill = false;
+      mechas.RED.facing = 'right';
+      mechas.RED.animation = 'idle';
+      mechas.RED.frame = 0;
+      mechas.RED.hitTimer = 0;
+
+      mechas.BLUE.x = 700;
+      mechas.BLUE.y = GROUND_Y;
+      mechas.BLUE.hp = MAX_HP;
+      mechas.BLUE.energy = MAX_ENERGY;
+      mechas.BLUE.velocityX = 0;
+      mechas.BLUE.velocityY = 0;
+      mechas.BLUE.isJumping = false;
+      mechas.BLUE.isAttacking = false;
+      mechas.BLUE.isDefending = false;
+      mechas.BLUE.isUsingSkill = false;
+      mechas.BLUE.facing = 'left';
+      mechas.BLUE.animation = 'idle';
+      mechas.BLUE.frame = 0;
+      mechas.BLUE.hitTimer = 0;
+
+      effects.length = 0;
+      updateHUD();
+    }
+
+    function drawPixelRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+    }
+
+    function drawMecha(mecha, isPlayer1) {
+      const x = Math.floor(mecha.x);
+      const y = Math.floor(mecha.y);
+      const facing = mecha.facing === 'right' ? 1 : -1;
+      const flip = mecha.facing === 'right' ? 1 : -1;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(flip, 1);
+
+      const flicker = mecha.hitTimer > 0 && Math.floor(mecha.hitTimer / 50) % 2 === 0;
+      if (flicker) {
+        ctx.globalAlpha = 0.5;
+      }
+
+      const bodyOffset = mecha.animation === 'idle' ? Math.sin(Date.now() / 300) * 2 : 0;
+      const legOffset = mecha.animation === 'walk' ? Math.sin(Date.now() / 100) * 8 : 0;
+      const armOffset = mecha.animation === 'attack' ? -20 : 0;
+
+      ctx.fillStyle = mecha.colorDark;
+      drawPixelRect(-20, -75 + bodyOffset, 40, 50, mecha.colorDark);
+      drawPixelRect(-25, -70 + bodyOffset, 10, 35, mecha.colorDark);
+      drawPixelRect(15, -70 + bodyOffset, 10, 35, mecha.colorDark);
+
+      ctx.fillStyle = mecha.color;
+      drawPixelRect(-18, -75 + bodyOffset, 36, 45, mecha.color);
+      drawPixelRect(-24, -68 + bodyOffset, 8, 30, mecha.color);
+      drawPixelRect(16, -68 + bodyOffset, 8, 30, mecha.color);
+
+      ctx.fillStyle = mecha.colorLight;
+      drawPixelRect(-15, -72 + bodyOffset, 12, 10, mecha.colorLight);
+      drawPixelRect(5, -72 + bodyOffset, 12, 10, mecha.colorLight);
+
+      ctx.fillStyle = '#1a1a2e';
+      drawPixelRect(-10, -50 + bodyOffset, 20, 15, '#1a1a2e');
+
+      ctx.fillStyle = mecha.colorLight;
+      drawPixelRect(-6, -48 + bodyOffset, 4, 4, mecha.colorLight);
+      drawPixelRect(2, -48 + bodyOffset, 4, 4, mecha.colorLight);
+
+      const shoulderY = -40 + bodyOffset;
+      const shoulderX = mecha.animation === 'attack' ? 20 : 16;
+      ctx.fillStyle = mecha.colorDark;
+      drawPixelRect(-30 + armOffset, shoulderY, 10, 15, mecha.colorDark);
+      drawPixelRect(shoulderX, shoulderY, 10, 15, mecha.colorDark);
+
+      ctx.fillStyle = mecha.color;
+      drawPixelRect(-28 + armOffset, shoulderY + 2, 6, 11, mecha.color);
+      drawPixelRect(shoulderX + 2, shoulderY + 2, 6, 11, mecha.color);
+
+      const legY = mecha.animation === 'jump' ? 5 : 0;
+      ctx.fillStyle = mecha.colorDark;
+      drawPixelRect(-15, -25 + legY, 12, 30, mecha.colorDark);
+      drawPixelRect(3, -25 + legY, 12, 30, mecha.colorDark);
+
+      ctx.fillStyle = mecha.color;
+      drawPixelRect(-13, -23 + legY, 8, 26, mecha.color);
+      drawPixelRect(5, -23 + legY, 8, 26, mecha.color);
+
+      ctx.fillStyle = '#666';
+      drawPixelRect(-15, 2 + legY + (legOffset / 2), 14, 6, '#555');
+      drawPixelRect(1, 2 + legY - (legOffset / 2), 14, 6, '#555');
+
+      ctx.fillStyle = mecha.colorLight;
+      drawPixelRect(-6, -22 + bodyOffset, 4, 4, mecha.colorLight);
+      drawPixelRect(2, -22 + bodyOffset, 4, 4, mecha.colorLight);
+
+      ctx.restore();
+
+      if (mecha.isDefending) {
+        ctx.save();
+        ctx.translate(x, y - 40);
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 45, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (mecha.animation === 'attack' && mecha.frame >= 1) {
+        ctx.save();
+        ctx.translate(x + (mecha.facing === 'right' ? 30 : -30), y - 55);
+        for (let i = 0; i < 5; i++) {
+          const angle = (Math.random() - 0.5) * Math.PI;
+          const dist = 20 + Math.random() * 20;
+          ctx.fillStyle = `rgba(255, ${200 + Math.random() * 55}, 0, ${0.8 - i * 0.15})`;
+          drawPixelRect(Math.cos(angle) * dist, Math.sin(angle) * dist, 4, 4, ctx.fillStyle);
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawSkillEffect(mecha, targetX) {
+      ctx.save();
+      ctx.strokeStyle = mecha.colorLight;
+      ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.8;
+      
+      const startX = mecha.x + (mecha.facing === 'right' ? 30 : -30);
+      const endX = targetX;
+      const y = mecha.y - 40;
+      
+      for (let i = 0; i < 3; i++) {
+        const offset = (Date.now() / 50 + i * 30) % 100;
+        const progress = offset / 100;
+        const px = startX + (endX - startX) * progress;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.8 - progress * 0.8})`;
+        drawPixelRect(px - 8, y - 8, 16, 16, ctx.fillStyle);
+      }
+      
+      ctx.restore();
+    }
+
+    function drawBackground() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+      gradient.addColorStop(0, '#0f0f1a');
+      gradient.addColorStop(0.7, '#1a1a2e');
+      gradient.addColorStop(1, '#2d2d44');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      ctx.fillStyle = '#1a1a2e';
+      for (let i = 0; i < 20; i++) {
+        const x = (i * 50 + Date.now() / 100) % (CANVAS_WIDTH + 50) - 25;
+        const y = 50 + Math.sin(i * 0.5) * 30;
+        drawPixelRect(x, y, 2, 2, '#2d2d44');
+      }
+
+      ctx.fillStyle = '#3d3d5c';
+      drawPixelRect(0, GROUND_Y + 10, CANVAS_WIDTH, 8, '#3d3d5c');
+      drawPixelRect(0, GROUND_Y + 22, CANVAS_WIDTH, 4, '#2d2d44');
+      
+      for (let x = 0; x < CANVAS_WIDTH; x += 40) {
+        ctx.fillStyle = '#4a4a6a';
+        drawPixelRect(x, GROUND_Y + 26, 30, 3, '#4a4a6a');
+      }
+
+      ctx.fillStyle = '#4a4a6a';
+      for (let i = 0; i < 5; i++) {
+        const x = 100 + i * 180;
+        drawPixelRect(x, GROUND_Y + 35, 20, 60, '#3d3d5c');
+        drawPixelRect(x + 5, GROUND_Y + 35, 10, 60, '#2d2d44');
+      }
+    }
+
+    function updateMecha(mecha, input, opponent) {
+      if (mecha.hp <= 0) return;
+
+      if (input.left) {
+        mecha.x -= MOVE_SPEED;
+        mecha.facing = 'left';
+        if (!mecha.isJumping && !mecha.isAttacking) mecha.animation = 'walk';
+      } else if (input.right) {
+        mecha.x += MOVE_SPEED;
+        mecha.facing = 'right';
+        if (!mecha.isJumping && !mecha.isAttacking) mecha.animation = 'walk';
+      } else if (!mecha.isJumping && !mecha.isAttacking && !mecha.isDefending) {
+        mecha.animation = 'idle';
+      }
+
+      if (input.jump && !mecha.isJumping) {
+        mecha.velocityY = JUMP_FORCE;
+        mecha.isJumping = true;
+        mecha.animation = 'jump';
+      }
+
+      if (input.attack && mecha.attackCooldown <= 0 && !mecha.isAttacking) {
+        mecha.isAttacking = true;
+        mecha.attackCooldown = 30;
+        mecha.animation = 'attack';
+        mecha.frame = 0;
+
+        const attackX = mecha.x + (mecha.facing === 'right' ? ATTACK_RANGE : -ATTACK_RANGE);
+        const oppBox = { x: opponent.x - 25, y: opponent.y - 75, width: 50, height: 75 };
+        
+        if (attackX > oppBox.x && attackX < oppBox.x + oppBox.width &&
+            mecha.y > oppBox.y && mecha.y < oppBox.y + oppBox.height) {
+          const damage = opponent.isDefending ? Math.floor(ATTACK_DAMAGE * 0.5) : ATTACK_DAMAGE;
+          opponent.hp = Math.max(0, opponent.hp - damage);
+          opponent.hitTimer = 200;
+          opponent.isDefending = false;
+          createHitEffect(opponent);
+        }
+      }
+
+      if (input.skill && mecha.skillCooldown <= 0 && mecha.energy >= SKILL_ENERGY_COST && !mecha.isUsingSkill) {
+        mecha.isUsingSkill = true;
+        mecha.skillCooldown = 60;
+        mecha.energy -= SKILL_ENERGY_COST;
+        mecha.animation = 'attack';
+
+        const targetX = mecha.x + (mecha.facing === 'right' ? SKILL_RANGE : -SKILL_RANGE);
+        const oppBox = { x: opponent.x - 25, y: opponent.y - 75, width: 50, height: 75 };
+        
+        if ((mecha.facing === 'right' && targetX > opponent.x) ||
+            (mecha.facing === 'left' && targetX < opponent.x + 50)) {
+          if (Math.abs(opponent.x - mecha.x) < SKILL_RANGE) {
+            const damage = opponent.isDefending ? Math.floor(SKILL_DAMAGE * 0.5) : SKILL_DAMAGE;
+            opponent.hp = Math.max(0, opponent.hp - damage);
+            opponent.hitTimer = 300;
+            opponent.isDefending = false;
+            createSkillHitEffect(opponent, mecha.colorLight);
+          }
+        }
+
+        createSkillProjectile(mecha, targetX);
+
+        setTimeout(() => {
+          mecha.isUsingSkill = false;
+        }, 300);
+      }
+
+      mecha.isDefending = input.defend && !mecha.isAttacking;
+      if (mecha.isDefending) {
+        mecha.animation = 'defend';
+      }
+
+      mecha.velocityY += GRAVITY;
+      mecha.y += mecha.velocityY;
+
+      if (mecha.y >= GROUND_Y) {
+        mecha.y = GROUND_Y;
+        mecha.isJumping = false;
+        mecha.velocityY = 0;
+        if (!input.left && !input.right && !mecha.isAttacking) {
+          mecha.animation = 'idle';
+        }
+      }
+
+      mecha.x = Math.max(30, Math.min(CANVAS_WIDTH - 30, mecha.x));
+
+      if (mecha.attackCooldown > 0) mecha.attackCooldown--;
+      if (mecha.skillCooldown > 0) mecha.skillCooldown--;
+      if (mecha.hitTimer > 0) mecha.hitTimer -= 16;
+
+      if (mecha.energy < MAX_ENERGY) {
+        mecha.energy += ENERGY_REGEN;
+      }
+
+      if (mecha.isAttacking) {
+        mecha.frameTimer++;
+        if (mecha.frameTimer >= 8) {
+          mecha.frameTimer = 0;
+          mecha.frame++;
+          if (mecha.frame >= 3) {
+            mecha.isAttacking = false;
+            mecha.animation = 'idle';
+          }
+        }
+      }
+    }
+
+    function createHitEffect(mecha) {
+      for (let i = 0; i < 8; i++) {
+        effects.push({
+          type: 'hit',
+          x: mecha.x,
+          y: mecha.y - 40,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 6,
+          life: 20,
+          color: '#fff'
+        });
+      }
+    }
+
+    function createSkillHitEffect(mecha, color) {
+      for (let i = 0; i < 15; i++) {
+        effects.push({
+          type: 'hit',
+          x: mecha.x,
+          y: mecha.y - 40,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 0.5) * 10,
+          life: 30,
+          color: color
+        });
+      }
+    }
+
+    function createSkillProjectile(mecha, targetX) {
+      effects.push({
+        type: 'projectile',
+        x: mecha.x + (mecha.facing === 'right' ? 30 : -30),
+        y: mecha.y - 40,
+        targetX: targetX,
+        mecha: mecha,
+        speed: 15,
+        life: 40,
+        color: mecha.colorLight
+      });
+    }
+
+    function updateEffects() {
+      for (let i = effects.length - 1; i >= 0; i--) {
+        const effect = effects[i];
+        
+        if (effect.type === 'hit') {
+          effect.x += effect.vx;
+          effect.y += effect.vy;
+          effect.vy += 0.3;
+          effect.life--;
+        } else if (effect.type === 'projectile') {
+          const dir = effect.targetX > effect.x ? 1 : -1;
+          effect.x += effect.speed * dir;
+          effect.life--;
+          
+          if (Math.abs(effect.x - effect.targetX) < 20 || effect.life <= 0) {
+            effects.splice(i, 1);
+            continue;
+          }
+        }
+        
+        if (effect.life <= 0) {
+          effects.splice(i, 1);
+        }
+      }
+    }
+
+    function drawEffects() {
+      effects.forEach(effect => {
+        if (effect.type === 'hit') {
+          const alpha = effect.life / 30;
+          ctx.fillStyle = effect.color;
+          ctx.globalAlpha = alpha;
+          drawPixelRect(effect.x, effect.y, 6, 6, effect.color);
+          drawPixelRect(effect.x - 4, effect.y - 2, 4, 4, effect.color);
+          drawPixelRect(effect.x + 4, effect.y + 2, 3, 3, effect.color);
+          ctx.globalAlpha = 1;
+        } else if (effect.type === 'projectile') {
+          const pulseSize = 20 + Math.sin(Date.now() / 50) * 5;
+          ctx.fillStyle = effect.color;
+          ctx.globalAlpha = effect.life / 40;
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, pulseSize, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(effect.x, effect.y, pulseSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      });
+    }
+
+    function updateHUD() {
+      const redHpBar = document.getElementById('red-hp');
+      const blueHpBar = document.getElementById('blue-hp');
+      const redEnergyBar = document.getElementById('red-energy');
+      const blueEnergyBar = document.getElementById('blue-energy');
+
+      redHpBar.style.width = `${(mechas.RED.hp / MAX_HP) * 100}%`;
+      blueHpBar.style.width = `${(mechas.BLUE.hp / MAX_HP) * 100}%`;
+      redEnergyBar.style.width = `${(mechas.RED.energy / MAX_ENERGY) * 100}%`;
+      blueEnergyBar.style.width = `${(mechas.BLUE.energy / MAX_ENERGY) * 100}%`;
+
+      redHpBar.className = 'bar hp-bar';
+      if (mechas.RED.hp < 30) redHpBar.classList.add('low');
+      else if (mechas.RED.hp < 60) redHpBar.classList.add('medium');
+
+      blueHpBar.className = 'bar hp-bar';
+      if (mechas.BLUE.hp < 30) blueHpBar.classList.add('low');
+      else if (mechas.BLUE.hp < 60) blueHpBar.classList.add('medium');
+    }
+
+    function checkWinCondition() {
+      if (mechas.RED.hp <= 0) {
+        gameState.phase = 'end';
+        gameState.winner = 'BLUE';
+        document.getElementById('winner-text').textContent = 'BLUE WINS!';
+        document.getElementById('winner-text').className = 'winner-text blue';
+        document.getElementById('end-screen').classList.remove('hidden');
+      } else if (mechas.BLUE.hp <= 0) {
+        gameState.phase = 'end';
+        gameState.winner = 'RED';
+        document.getElementById('winner-text').textContent = 'RED WINS!';
+        document.getElementById('winner-text').className = 'winner-text red';
+        document.getElementById('end-screen').classList.remove('hidden');
+      }
+    }
+
+    const player1Input = { left: false, right: false, jump: false, attack: false, defend: false, skill: false };
+    const player2Input = { left: false, right: false, jump: false, attack: false, defend: false, skill: false };
+
+    function handleKeyDown(e) {
+      keys[e.code] = true;
+
+      if (e.code === 'Space') {
+        if (gameState.phase === 'start') {
+          document.getElementById('start-screen').classList.add('hidden');
+          document.getElementById('countdown-screen').classList.remove('hidden');
+          gameState.phase = 'countdown';
+          startCountdown();
+        } else if (gameState.phase === 'end') {
+          document.getElementById('end-screen').classList.add('hidden');
+          resetGame();
+          document.getElementById('countdown-screen').classList.remove('hidden');
+          gameState.phase = 'countdown';
+          startCountdown();
+        }
+        e.preventDefault();
+      }
+
+      player1Input.left = keys['KeyA'];
+      player1Input.right = keys['KeyD'];
+      player1Input.jump = keys['KeyW'];
+      player1Input.attack = keys['KeyJ'];
+      player1Input.defend = keys['KeyK'];
+      player1Input.skill = keys['KeyL'];
+
+      player2Input.left = keys['ArrowLeft'];
+      player2Input.right = keys['ArrowRight'];
+      player2Input.jump = keys['ArrowUp'];
+      player2Input.attack = keys['Numpad1'];
+      player2Input.defend = keys['Numpad2'];
+      player2Input.skill = keys['Numpad3'];
+    }
+
+    function handleKeyUp(e) {
+      keys[e.code] = false;
+
+      player1Input.left = keys['KeyA'];
+      player1Input.right = keys['KeyD'];
+      player1Input.jump = keys['KeyW'];
+      player1Input.attack = keys['KeyJ'];
+      player1Input.defend = keys['KeyK'];
+      player1Input.skill = keys['KeyL'];
+
+      player2Input.left = keys['ArrowLeft'];
+      player2Input.right = keys['ArrowRight'];
+      player2Input.jump = keys['ArrowUp'];
+      player2Input.attack = keys['Numpad1'];
+      player2Input.defend = keys['Numpad2'];
+      player2Input.skill = keys['Numpad3'];
+    }
+
+    function startCountdown() {
+      let count = 3;
+      const countdownEl = document.getElementById('countdown');
+      
+      const tick = () => {
+        if (count > 0) {
+          countdownEl.textContent = count;
+          count--;
+          setTimeout(tick, 1000);
+        } else {
+          countdownEl.textContent = 'GO!';
+          setTimeout(() => {
+            document.getElementById('countdown-screen').classList.add('hidden');
+            gameState.phase = 'playing';
+          }, 500);
+        }
+      };
+      
+      tick();
+    }
+
+    function gameLoop() {
+      if (gameState.phase === 'playing') {
+        updateMecha(mechas.RED, player1Input, mechas.BLUE);
+        updateMecha(mechas.BLUE, player2Input, mechas.RED);
+        updateEffects();
+        updateHUD();
+        checkWinCondition();
+      }
+
+      drawBackground();
+      drawEffects();
+      drawMecha(mechas.RED, true);
+      drawMecha(mechas.BLUE, false);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    gameLoop();
+  </script>
+</body>
+</html>
