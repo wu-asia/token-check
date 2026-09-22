@@ -6,6 +6,7 @@ import math
 import sys
 from collections.abc import Callable
 from datetime import datetime
+from typing import Protocol
 
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QCloseEvent
@@ -26,10 +27,21 @@ from PySide6.QtWidgets import (
 )
 
 from monitor.notification_manager import NotificationManager
+from monitor.history_database import HistoryDatabase
+from monitor.history_recorder import HistoryRecorder
 from monitor.refresh_worker import DEFAULT_REFRESH_INTERVAL_MS, RefreshController
+from monitor.settings import SettingsStore
 from monitor.usage_model import DataSource, SnapshotStatus, UsageSnapshot
 from monitor.usage_reader import read_usage
 from ui.tray import TrayController
+
+
+class SnapshotRecorder(Protocol):
+    """The narrow history dependency used by the UI."""
+
+    def observe(self, snapshot: UsageSnapshot) -> None: ...
+
+    def shutdown(self) -> None: ...
 
 
 def _percent(value: int | None) -> str:
@@ -100,10 +112,17 @@ class UsageSection(QGroupBox):
 class MainWindow(QMainWindow):
     """Resizable window with RefreshController, tray, and threshold alerts."""
 
-    def __init__(self, reader: Callable[[], UsageSnapshot] = read_usage, refresh_interval_ms: int = DEFAULT_REFRESH_INTERVAL_MS) -> None:
+    def __init__(
+        self,
+        reader: Callable[[], UsageSnapshot] = read_usage,
+        refresh_interval_ms: int = DEFAULT_REFRESH_INTERVAL_MS,
+        history_recorder: SnapshotRecorder | None = None,
+    ) -> None:
         super().__init__()
         self._allow_exit = False
         self._notifications = NotificationManager()
+        # History has its own five-minute default timer and never drives UI refresh.
+        self._history_recorder = history_recorder or HistoryRecorder(HistoryDatabase(), SettingsStore())
         self._refresh_controller = RefreshController(reader, refresh_interval_ms)
         self._refresh_controller.snapshot_ready.connect(self._apply_snapshot)
         self._refresh_controller.loading_changed.connect(self._set_loading)
@@ -182,6 +201,7 @@ class MainWindow(QMainWindow):
         self.last_updated.setText(snapshot.timestamp.astimezone().strftime("%Y-%m-%d %H:%M:%S"))
         self.data_source.setText(snapshot.source.value + (" (unverified)" if not snapshot.verified else ""))
         self.status.setText(_state_label(snapshot))
+        self._history_recorder.observe(snapshot)
         self._tray.update_snapshot(snapshot)
         for notification in self._notifications.evaluate(snapshot):
             self._tray.notify(notification)
@@ -221,6 +241,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         self._refresh_controller.shutdown()
+        self._history_recorder.shutdown()
         self._tray.hide()
         event.accept()
 

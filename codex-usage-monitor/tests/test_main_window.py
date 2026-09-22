@@ -11,13 +11,21 @@ from monitor.refresh_worker import RefreshWorker
 from ui.main_window import MainWindow
 
 
+class NoopHistoryRecorder:
+    def observe(self, snapshot: UsageSnapshot) -> None:
+        pass
+
+    def shutdown(self) -> None:
+        pass
+
+
 class MainWindowTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        self.window = MainWindow(reader=lambda: self.snapshot())
+        self.window = MainWindow(reader=lambda: self.snapshot(), history_recorder=NoopHistoryRecorder())
 
     def tearDown(self) -> None:
         self.window._allow_exit = True
