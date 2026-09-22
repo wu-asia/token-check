@@ -7,9 +7,12 @@ import sys
 from collections.abc import Callable
 from datetime import datetime
 
-from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
+from PySide6.QtCore import Slot
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
+    QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -17,13 +20,16 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QProgressBar,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
-from monitor.log_parser import unavailable_snapshot
+from monitor.notification_manager import NotificationManager
+from monitor.refresh_worker import DEFAULT_REFRESH_INTERVAL_MS, RefreshController
 from monitor.usage_model import DataSource, SnapshotStatus, UsageSnapshot
 from monitor.usage_reader import read_usage
+from ui.tray import TrayController
 
 
 def _percent(value: int | None) -> str:
@@ -61,24 +67,6 @@ def _state_label(snapshot: UsageSnapshot) -> str:
     return "Available"
 
 
-class RefreshWorker(QObject):
-    """Runs the existing reader away from the Qt event loop."""
-
-    completed = Signal(object)
-
-    def __init__(self, reader: Callable[[], UsageSnapshot]) -> None:
-        super().__init__()
-        self._reader = reader
-
-    @Slot()
-    def run(self) -> None:
-        try:
-            snapshot = self._reader()
-        except Exception:
-            snapshot = unavailable_snapshot(datetime.now().astimezone())
-        self.completed.emit(snapshot)
-
-
 class UsageSection(QGroupBox):
     def __init__(self, title: str) -> None:
         super().__init__(title)
@@ -96,7 +84,6 @@ class UsageSection(QGroupBox):
 
     def set_values(self, used: int | None, remaining: int | None, reset_at: datetime | None, now: datetime) -> None:
         if remaining is None:
-            # Do not display an empty numeric bar as a real 0% remaining value.
             self.progress.setRange(0, 1)
             self.progress.setValue(0)
             self.progress.setFormat("N/A")
@@ -111,16 +98,16 @@ class UsageSection(QGroupBox):
 
 
 class MainWindow(QMainWindow):
-    """A resizable main window with manual refresh and optional refresh timer."""
+    """Resizable window with RefreshController, tray, and threshold alerts."""
 
-    def __init__(self, reader: Callable[[], UsageSnapshot] = read_usage, refresh_interval_ms: int = 30_000) -> None:
+    def __init__(self, reader: Callable[[], UsageSnapshot] = read_usage, refresh_interval_ms: int = DEFAULT_REFRESH_INTERVAL_MS) -> None:
         super().__init__()
-        self._reader = reader
-        self._thread: QThread | None = None
-        self._worker: RefreshWorker | None = None
-        self._timer = QTimer(self)
-        self._timer.setInterval(refresh_interval_ms)
-        self._timer.timeout.connect(self.refresh)
+        self._allow_exit = False
+        self._notifications = NotificationManager()
+        self._refresh_controller = RefreshController(reader, refresh_interval_ms)
+        self._refresh_controller.snapshot_ready.connect(self._apply_snapshot)
+        self._refresh_controller.loading_changed.connect(self._set_loading)
+        self._refresh_controller.paused_changed.connect(self._sync_pause_action)
 
         self.setWindowTitle("Codex Usage Monitor")
         self.setMinimumWidth(380)
@@ -128,8 +115,7 @@ class MainWindow(QMainWindow):
 
         central = QWidget()
         layout = QVBoxLayout(central)
-        title = QLabel("Codex Usage Monitor")
-        layout.addWidget(title)
+        layout.addWidget(QLabel("Codex Usage Monitor"))
         self.five_hour = UsageSection("5-hour")
         self.weekly = UsageSection("Weekly")
         layout.addWidget(self.five_hour)
@@ -151,52 +137,97 @@ class MainWindow(QMainWindow):
         actions.addWidget(self.refresh_button)
         layout.addLayout(actions)
         self.setCentralWidget(central)
-        self._set_loading()
+
+        self._tray = TrayController(
+            self,
+            on_open=self.open_window,
+            on_refresh=self.refresh,
+            on_pause_changed=lambda paused: self.set_auto_refresh_enabled(not paused),
+            on_settings=self.show_settings,
+            on_exit=self.exit_application,
+        )
+        self._tray.show()
+        self._set_loading(True)
+        self._refresh_controller.start()
+
+    @property
+    def auto_refresh_paused(self) -> bool:
+        return self._refresh_controller.is_paused
 
     def set_auto_refresh_enabled(self, enabled: bool) -> None:
-        """Reserved auto-refresh interface; disabled by default."""
-        self._timer.start() if enabled else self._timer.stop()
+        self._refresh_controller.start() if enabled else self._refresh_controller.pause()
 
-    def _set_loading(self) -> None:
-        self.refresh_button.setEnabled(False)
-        self.status.setText("Loading")
+    def set_refresh_interval_seconds(self, seconds: int) -> None:
+        self._refresh_controller.set_interval_ms(seconds * 1000)
+
+    @Slot(bool)
+    def _sync_pause_action(self, paused: bool) -> None:
+        self._tray.set_paused(paused)
+
+    @Slot(bool)
+    def _set_loading(self, loading: bool) -> None:
+        self.refresh_button.setEnabled(not loading)
+        if loading:
+            self.status.setText("Loading")
 
     @Slot()
     def refresh(self) -> None:
-        if self._thread is not None and self._thread.isRunning():
-            return
-        self._set_loading()
-        self._thread = QThread(self)
-        self._worker = RefreshWorker(self._reader)
-        self._worker.moveToThread(self._thread)
-        self._thread.started.connect(self._worker.run)
-        self._worker.completed.connect(self._apply_snapshot)
-        self._worker.completed.connect(self._thread.quit)
-        self._thread.finished.connect(self._worker.deleteLater)
-        self._thread.finished.connect(self._clear_worker)
-        self._thread.start()
+        self._refresh_controller.refresh_now()
 
     @Slot(object)
     def _apply_snapshot(self, snapshot: UsageSnapshot) -> None:
         now = datetime.now().astimezone()
-        self.five_hour.set_values(
-            snapshot.five_hour_used, snapshot.five_hour_remaining, snapshot.five_hour_reset_at, now
-        )
+        self.five_hour.set_values(snapshot.five_hour_used, snapshot.five_hour_remaining, snapshot.five_hour_reset_at, now)
         self.weekly.set_values(snapshot.weekly_used, snapshot.weekly_remaining, snapshot.weekly_reset_at, now)
         self.last_updated.setText(snapshot.timestamp.astimezone().strftime("%Y-%m-%d %H:%M:%S"))
-        source = snapshot.source.value + (" (unverified)" if not snapshot.verified else "")
-        self.data_source.setText(source)
+        self.data_source.setText(snapshot.source.value + (" (unverified)" if not snapshot.verified else ""))
         self.status.setText(_state_label(snapshot))
-        self.refresh_button.setEnabled(True)
+        self._tray.update_snapshot(snapshot)
+        for notification in self._notifications.evaluate(snapshot):
+            self._tray.notify(notification)
 
     @Slot()
-    def _clear_worker(self) -> None:
-        self._worker = None
-        self._thread = None
+    def open_window(self) -> None:
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    @Slot()
+    def show_settings(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Refresh Settings")
+        layout = QFormLayout(dialog)
+        interval = QSpinBox(dialog)
+        interval.setRange(5, 3600)
+        interval.setSuffix(" seconds")
+        interval.setValue(self._refresh_controller.interval_ms // 1000)
+        layout.addRow("Refresh interval:", interval)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.set_refresh_interval_seconds(interval.value())
+
+    @Slot()
+    def exit_application(self) -> None:
+        self._allow_exit = True
+        self.close()
+        QApplication.quit()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if not self._allow_exit:
+            self.hide()
+            event.ignore()
+            return
+        self._refresh_controller.shutdown()
+        self._tray.hide()
+        event.accept()
 
 
 def run() -> int:
     app = QApplication.instance() or QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
     window = MainWindow()
     window.show()
     window.refresh()

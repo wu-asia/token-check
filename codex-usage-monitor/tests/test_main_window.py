@@ -1,13 +1,14 @@
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import unittest
 
 from PySide6.QtWidgets import QApplication
 
 from monitor.usage_model import DataSource, SnapshotStatus, UsageSnapshot
-from ui.main_window import MainWindow, RefreshWorker
+from monitor.refresh_worker import RefreshWorker
+from ui.main_window import MainWindow
 
 
 class MainWindowTests(unittest.TestCase):
@@ -19,6 +20,7 @@ class MainWindowTests(unittest.TestCase):
         self.window = MainWindow(reader=lambda: self.snapshot())
 
     def tearDown(self) -> None:
+        self.window._allow_exit = True
         self.window.close()
 
     @staticmethod
@@ -75,6 +77,23 @@ class MainWindowTests(unittest.TestCase):
 
         self.assertEqual(self.window.size().width(), 720)
         self.assertEqual(self.window.size().height(), 520)
+
+    def test_threshold_notifications_rearm_after_reset(self) -> None:
+        notified: list[object] = []
+        self.window._tray.notify = notified.append  # type: ignore[method-assign]
+        reset = datetime(2026, 9, 22, 12, tzinfo=timezone.utc)
+
+        self.window._apply_snapshot(self.snapshot(
+            five_hour_used=71, five_hour_remaining=29, five_hour_reset_at=reset,
+        ))
+        self.window._apply_snapshot(self.snapshot(
+            five_hour_used=91, five_hour_remaining=9, five_hour_reset_at=reset,
+        ))
+        self.window._apply_snapshot(self.snapshot(
+            five_hour_used=91, five_hour_remaining=9, five_hour_reset_at=reset + timedelta(hours=5),
+        ))
+
+        self.assertEqual([item.threshold for item in notified], [30, 10, 30, 10])
 
 
 if __name__ == "__main__":
