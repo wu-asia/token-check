@@ -34,6 +34,7 @@ from monitor.settings import SettingsStore
 from monitor.usage_model import DataSource, SnapshotStatus, UsageSnapshot
 from monitor.usage_reader import read_usage
 from ui.tray import TrayController
+from ui.history_window import HistoryWindow
 
 
 class SnapshotRecorder(Protocol):
@@ -120,6 +121,7 @@ class MainWindow(QMainWindow):
     ) -> None:
         super().__init__()
         self._allow_exit = False
+        self._history_window: HistoryWindow | None = None
         self._notifications = NotificationManager()
         # History has its own five-minute default timer and never drives UI refresh.
         self._history_recorder = history_recorder or HistoryRecorder(HistoryDatabase(), SettingsStore())
@@ -152,7 +154,10 @@ class MainWindow(QMainWindow):
         actions = QHBoxLayout()
         self.refresh_button = QPushButton("Refresh")
         self.refresh_button.clicked.connect(self.refresh)
+        self.history_button = QPushButton("History")
+        self.history_button.clicked.connect(self.open_history)
         actions.addStretch()
+        actions.addWidget(self.history_button)
         actions.addWidget(self.refresh_button)
         layout.addLayout(actions)
         self.setCentralWidget(central)
@@ -211,6 +216,14 @@ class MainWindow(QMainWindow):
         self.showNormal()
         self.raise_()
         self.activateWindow()
+
+    @Slot()
+    def open_history(self) -> None:
+        if self._history_window is None:
+            self._history_window = HistoryWindow()
+        self._history_window.show()
+        self._history_window.raise_()
+        self._history_window.activateWindow()
 
     @Slot()
     def show_settings(self) -> None:
