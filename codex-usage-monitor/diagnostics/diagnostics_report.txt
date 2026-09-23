@@ -1,5 +1,5 @@
 Codex Usage Monitor — Phase 1 read-only diagnostics report
-Generated (UTC): 2026-09-22T02:42:09.589179+00:00
+Generated (UTC): 2026-09-22T03:05:31.763494+00:00
 
 Safety boundary: no network calls, App Server connection/RPC, interactive Codex command, or Codex write.
 Filtered from inspection/reporting: access_token, refresh_token, session_token, cookie, authorization, bearer, api_key.
@@ -28,14 +28,14 @@ Discovered log directories:
 Roots examined:
 - Codex CLI home: C:\Users\wuyaz\.codex
   exists=True; readable=True; candidate_files=20
-  candidate: C:\Users\wuyaz\.codex\.codex-global-state.json | 709571 bytes | 2026-09-22T02:40:45.444013+00:00 | terms=usage, ratelimit, remaining, reset, weekly, 5-hour, quota, limit
-  candidate: C:\Users\wuyaz\.codex\goals_1.sqlite | 32768 bytes | 2026-09-21T05:32:54.388099+00:00 | terms=usage, limit
-  candidate: C:\Users\wuyaz\.codex\logs_2.sqlite | 30867456 bytes | 2026-09-22T02:37:21.054582+00:00 | terms=usage, ratelimit, remaining, reset, limit
-  candidate: C:\Users\wuyaz\.codex\memories_1.sqlite | 40960 bytes | 2026-09-21T05:32:54.389297+00:00 | terms=usage, remaining
-  candidate: C:\Users\wuyaz\.codex\models_cache.json | 267244 bytes | 2026-09-22T02:41:26.458319+00:00 | terms=usage, remaining, reset, limit
-  candidate: C:\Users\wuyaz\.codex\state_5.sqlite | 1327104 bytes | 2026-09-22T02:41:19.094218+00:00 | terms=usage, ratelimit, remaining, reset, weekly, 5-hour, quota, limit
-  candidate: C:\Users\wuyaz\.codex\thread_history_1.sqlite | 5980160 bytes | 2026-09-21T08:12:54.637150+00:00 | terms=usage, reset, limit
-  candidate: C:\Users\wuyaz\.codex\cache\codex_apps_tools\86b64a63ce8572cd013e0d751b8a07a7090c2157.json | 1227655 bytes | 2026-09-22T02:40:29.449081+00:00 | terms=usage, remaining, quota, limit
+  candidate: C:\Users\wuyaz\.codex\.codex-global-state.json | 718962 bytes | 2026-09-22T03:03:44.354403+00:00 | terms=usage, ratelimit, remaining, reset, weekly, 5-hour, quota, limit
+  candidate: C:\Users\wuyaz\.codex\goals_1.sqlite | 32768 bytes | 2026-09-22T03:02:52.703819+00:00 | terms=usage, limit
+  candidate: C:\Users\wuyaz\.codex\logs_2.sqlite | 30867456 bytes | 2026-09-22T03:02:50.170508+00:00 | terms=usage, ratelimit, remaining, reset, limit
+  candidate: C:\Users\wuyaz\.codex\memories_1.sqlite | 40960 bytes | 2026-09-22T02:45:27.645875+00:00 | terms=usage, remaining
+  candidate: C:\Users\wuyaz\.codex\models_cache.json | 267244 bytes | 2026-09-22T03:03:59.639674+00:00 | terms=usage, remaining, reset, limit
+  candidate: C:\Users\wuyaz\.codex\state_5.sqlite | 1327104 bytes | 2026-09-22T03:01:05.859929+00:00 | terms=usage, ratelimit, remaining, reset, weekly, 5-hour, quota, limit
+  candidate: C:\Users\wuyaz\.codex\thread_history_1.sqlite | 6414336 bytes | 2026-09-22T03:03:34.413396+00:00 | terms=usage, reset, limit
+  candidate: C:\Users\wuyaz\.codex\cache\codex_apps_tools\86b64a63ce8572cd013e0d751b8a07a7090c2157.json | 1227655 bytes | 2026-09-22T03:02:36.879739+00:00 | terms=usage, remaining, quota, limit
   candidate: C:\Users\wuyaz\.codex\cache\codex_app_directory\b4d8f580cd4140195ac2fe1cf52b20c7dc09d9a5.json | 5008202 bytes | 2026-08-23T10:00:43.871396+00:00 | terms=limit
   candidate: C:\Users\wuyaz\.codex\cache\remote_plugin_catalog\722f3c006843d232.json | 24690877 bytes | 2026-09-22T02:26:11.948926+00:00 | terms=usage, remaining, reset, weekly, limit
   candidate: C:\Users\wuyaz\.codex\plugins\cache\openai-curated-remote\notion\0.1.8\skills\notion-knowledge-capture\LICENSE.txt | 1057 bytes | 1970-01-01T00:00:01+00:00 | terms=limit
@@ -54,7 +54,7 @@ Roots examined:
 - MSIX LocalState: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalState
   exists=True; readable=True; candidate_files=0
 - MSIX LocalCache: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache
-  exists=True; readable=True; candidate_files=42
+  exists=True; readable=True; candidate_files=43
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\06\codex-desktop-aacd776b-4ed9-4320-a2b1-827d60928b18-29232-t1-i1-013649-0.log | 22383 bytes | 2026-09-06T08:58:56.836440+00:00 | terms=limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\07\codex-desktop-aacd776b-4ed9-4320-a2b1-827d60928b18-29232-t0-i1-063332-0.log | 1565284 bytes | 2026-09-07T16:11:01.677576+00:00 | terms=usage, rate_limit, limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\07\codex-desktop-aacd776b-4ed9-4320-a2b1-827d60928b18-29232-t1-i1-063430-0.log | 368668 bytes | 2026-09-07T14:17:27.990094+00:00 | terms=limit
@@ -91,11 +91,12 @@ Roots examined:
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\20\codex-desktop-975a8d5c-1ec4-48ea-9052-1a4a20fd6796-3580-t1-i1-030929-0.log | 1669 bytes | 2026-09-20T03:09:35.326837+00:00 | terms=limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\20\codex-desktop-f44a2049-6848-4589-bd7d-58ed2ca62683-11972-t1-i1-031634-0.log | 4035 bytes | 2026-09-20T03:16:38.175310+00:00 | terms=limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\21\codex-desktop-01eba516-c5d9-4baf-8525-c6a6efac80d7-23420-t0-i1-041253-0.log | 436449 bytes | 2026-09-21T11:14:50.894034+00:00 | terms=usage, limit
-  candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\22\codex-desktop-01eba516-c5d9-4baf-8525-c6a6efac80d7-23420-t0-i1-004419-0.log | 285260 bytes | 2026-09-22T02:41:55.473485+00:00 | terms=usage, limit
+  candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\22\codex-desktop-01eba516-c5d9-4baf-8525-c6a6efac80d7-23420-t0-i1-004419-0.log | 701344 bytes | 2026-09-22T03:05:10.280994+00:00 | terms=usage, limit
+  candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs\2026\09\22\codex-desktop-01eba516-c5d9-4baf-8525-c6a6efac80d7-23420-t1-i1-004440-0.log | 7154 bytes | 2026-09-22T02:56:05.394082+00:00 | terms=limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Codex\web\Codex\ActorSafetyLists\9.8200.9609\listdata.json | 2635245 bytes | 2026-09-15T13:37:20+00:00 | terms=reset, weekly, limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Codex\web\Codex\Default\Partitions\codex-browser-app\shared_proto_db\000003.log | 91328 bytes | 2026-09-22T00:44:20.840841+00:00 | terms=usage
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Codex\web\Codex\Default\shared_proto_db\000003.log | 91328 bytes | 2026-09-22T00:44:20.840841+00:00 | terms=usage
-  candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Codex\web\Codex\sentry\scope_v3.json | 103201 bytes | 2026-09-22T02:42:01.397278+00:00 | terms=usage, limit
+  candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Codex\web\Codex\sentry\scope_v3.json | 104391 bytes | 2026-09-22T03:05:20.025037+00:00 | terms=usage, limit
   candidate: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Codex\web\Codex\WasmTtsEngine\20260904.1\wasm_tts_manifest_v3.json | 1151 bytes | 2026-09-04T11:45:14+00:00 | terms=limit
 - MSIX RoamingState: C:\Users\wuyaz\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\RoamingState
   exists=True; readable=True; candidate_files=0
