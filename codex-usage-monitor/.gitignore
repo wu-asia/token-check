@@ -6,3 +6,4 @@ build/
 dist/
 *.spec
 build-*.log
+debug-build-*.log
