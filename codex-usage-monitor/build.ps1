@@ -7,6 +7,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
 & $Python -m PyInstaller --noconfirm --clean --onefile --windowed --name CodexUsageMonitor `
+    --collect-all PySide6 `
     --paths $root `
     app.py
 
