@@ -17,3 +17,8 @@ Set-Location $root
 if (-not (Test-Path "$root\dist\CodexUsageMonitor\CodexUsageMonitor.exe")) {
     throw "Build did not produce dist\CodexUsageMonitor\CodexUsageMonitor.exe"
 }
+
+# A portable archive prevents accidental distribution of only the EXE, which
+# would omit the adjacent Qt runtime required by the desktop application.
+Compress-Archive -Path "$root\dist\CodexUsageMonitor" `
+    -DestinationPath "$root\dist\CodexUsageMonitor-portable.zip" -Force

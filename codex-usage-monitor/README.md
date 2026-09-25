@@ -47,7 +47,7 @@ Exemption 是**仅本地统计豁免**：Daily、Weekly、One-Time 和 Manual �
 .\build.ps1 -Python "D:\develop\Pycharm\python\python.exe"
 ```
 
-生成 `dist\CodexUsageMonitor\CodexUsageMonitor.exe`。请保留整个 `CodexUsageMonitor` 文件夹；Qt DLL 与插件必须与 EXE 一起分发。程序使用 `%LOCALAPPDATA%\CodexUsageMonitor` 存放用户数据，因此替换应用文件夹不会覆盖数据库或设置。
+生成 `dist\CodexUsageMonitor\CodexUsageMonitor.exe` 和 `dist\CodexUsageMonitor-portable.zip`。日常使用请解压 portable ZIP，再双击其中的 `CodexUsageMonitor.exe`；不要只复制 EXE，因为 Qt DLL 与插件必须和它一起保留。程序使用 `%LOCALAPPDATA%\CodexUsageMonitor` 存放用户数据，因此替换应用文件夹不会覆盖数据库或设置。
 
 ## 排障
 
