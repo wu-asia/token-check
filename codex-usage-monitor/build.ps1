@@ -6,11 +6,14 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
-& $Python -m PyInstaller --noconfirm --clean --onefile --windowed --name CodexUsageMonitor `
+# PySide6/Qt 6.11 has unreliable DLL loading from a PyInstaller one-file
+# temporary extraction directory on this Windows environment. Build an onedir
+# application so Qt's DLLs remain adjacent to the executable.
+& $Python -m PyInstaller --noconfirm --clean --onedir --windowed --name CodexUsageMonitor `
     --collect-all PySide6 `
     --paths $root `
     app.py
 
-if (-not (Test-Path "$root\dist\CodexUsageMonitor.exe")) {
-    throw "Build did not produce dist\CodexUsageMonitor.exe"
+if (-not (Test-Path "$root\dist\CodexUsageMonitor\CodexUsageMonitor.exe")) {
+    throw "Build did not produce dist\CodexUsageMonitor\CodexUsageMonitor.exe"
 }

@@ -7,3 +7,4 @@ dist/
 *.spec
 build-*.log
 debug-build-*.log
+onedir-build-*.log
